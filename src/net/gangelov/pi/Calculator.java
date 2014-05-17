@@ -32,9 +32,9 @@ public class Calculator {
         this.mc = new MathContext(numTerms * 10, RoundingMode.FLOOR);
     }
 
-    public BigDecimal calculate() {
+    public BigDecimal calculate(CalculationProgress progress) {
         long startTime;
-        BigDecimal sum = calculateSum(),
+        BigDecimal sum = calculateSum(progress),
                    result;
 
 //        startTime = System.currentTimeMillis();
@@ -48,7 +48,7 @@ public class Calculator {
         return result.round(new MathContext(numTerms * 10 + 1, RoundingMode.FLOOR));
     }
 
-    private BigDecimal calculateSum() {
+    private BigDecimal calculateSum(CalculationProgress progress) {
         long startTime;
 
         BigDecimal sum = BigDecimal.ZERO,
@@ -61,6 +61,8 @@ public class Calculator {
         startTime = System.currentTimeMillis();
         sum = sum.add(A, mc);
         summationTime += System.currentTimeMillis() - startTime;
+
+        progress.update(1);
 
         for (int n = 1; n < numTerms; n++) {
             startTime = System.currentTimeMillis();
@@ -94,6 +96,8 @@ public class Calculator {
                 sum = sum.subtract(term);
             }
             summationTime += System.currentTimeMillis() - startTime;
+
+            progress.update(n + 1);
         }
 
         return sum;

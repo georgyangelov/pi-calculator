@@ -21,14 +21,19 @@ public class ConcurrentCalculator {
     }
 
     public BigDecimal calculate(CalculationProgress progress) throws InterruptedException {
-        BlockingQueue<Term> terms = new ArrayBlockingQueue<Term>(20, false);
+        Term[] terms = new Term[numTerms];
         TermProducer producer     = new TermProducer(numTerms, terms, progress);
         BigDecimal result         = BigDecimal.ZERO;
 
-        if (numThreads == 1) {
-            TermConsumer consumer = new TermConsumer(terms, numTerms * precisionPerTerm, progress);
+        long time = System.currentTimeMillis();
+        producer.run();
+        time = System.currentTimeMillis() - time;
 
-            producer.run();
+        System.out.println("Producer done in " + time + "ms");
+
+        if (numThreads == 1) {
+            TermConsumer consumer = new TermConsumer(terms, 0, 1, numTerms * precisionPerTerm, progress);
+
             consumer.run();
 
             result = consumer.getSum();
@@ -37,7 +42,7 @@ public class ConcurrentCalculator {
             List<Thread> consumerThreads = new ArrayList<Thread>(numThreads);
 
             for (int i = 0; i < numThreads; i++) {
-                TermConsumer consumer = new TermConsumer(terms, numTerms * precisionPerTerm, progress);
+                TermConsumer consumer = new TermConsumer(terms, i, numThreads, numTerms * precisionPerTerm, progress);
                 Thread consumerThread = new Thread(consumer);
 
                 consumers.add(consumer);
@@ -45,8 +50,6 @@ public class ConcurrentCalculator {
 
                 consumerThread.start();
             }
-
-            producer.run();
 
             for (int i = 0; i < numThreads; i++) {
                 consumerThreads.get(i).join();

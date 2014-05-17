@@ -29,7 +29,7 @@ public class CalculationProgress {
     }
 
     public synchronized void update(int terms) {
-        if (terms == nextTermThreshold) {
+        if (terms >= nextTermThreshold) {
             currentTerms = terms;
             nextTermThreshold = terms + maxTerms / 100;
 

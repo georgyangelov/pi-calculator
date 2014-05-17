@@ -45,11 +45,24 @@ public class Main {
         final int numDigits = 10000;
         final int maxTerms = (numDigits / ConcurrentCalculator.digitsPerTerm + 1);
 
-        Calculator calc = new Calculator((numDigits / ConcurrentCalculator.digitsPerTerm + 1));
-        ConcurrentCalculator ccalc = new ConcurrentCalculator(maxTerms, 5);
+        Calculator calc = new Calculator(maxTerms);
+        ConcurrentCalculator ccalc = new ConcurrentCalculator(maxTerms, 4);
+
+        CalculationProgress progress1 = new CalculationProgress(maxTerms);
+
+        progress1.setHandler(new CalculationProgress.Handler() {
+            @Override
+            public void progress(int current, int max) {
+                System.out.format("Seq progress: %02d%%\n", (int)(((float)current)/max * 100));
+            }
+        });
 
         startTime = System.currentTimeMillis();
-//        pi1 = calc.calculate();
+//        try {
+            pi1 = calc.calculate(progress1);
+//        } catch (InterruptedException e) {
+//            System.err.println("Concurrent PI calculation interrupted!");
+//        }
         sequentialTime = System.currentTimeMillis() - startTime;
 
         CalculationProgress progress = new CalculationProgress(maxTerms);
@@ -76,16 +89,16 @@ public class Main {
         System.out.println(pi2.toString());
 
 
-        System.out.println("Subterm 1:        " + calc.subterm1Time + "ms");
-        System.out.println("Subterm 2:        " + calc.subterm2Time + "ms");
-        System.out.println("Subterm C:        " + calc.subtermCTime + "ms");
-        System.out.println("* (4n)!:          " + calc.multiplication1Time + "ms");
-        System.out.println("* (A + Bn):       " + calc.multiplication2Time + "ms");
-        System.out.println("sub2 * subC:      " + calc.multiplication3Time + "ms");
-        System.out.println("/ (sub2 * subC):  " + calc.divisionTime + "ms");
-        System.out.println("Summation:        " + calc.summationTime + "ms");
-        System.out.println("/ 4C:             " + calc.finalDivisionTime + "ms");
-        System.out.println("1 / sum:          " + calc.inverseTime + "ms");
+//        System.out.println("Subterm 1:        " + calc.subterm1Time + "ms");
+//        System.out.println("Subterm 2:        " + calc.subterm2Time + "ms");
+//        System.out.println("Subterm C:        " + calc.subtermCTime + "ms");
+//        System.out.println("* (4n)!:          " + calc.multiplication1Time + "ms");
+//        System.out.println("* (A + Bn):       " + calc.multiplication2Time + "ms");
+//        System.out.println("sub2 * subC:      " + calc.multiplication3Time + "ms");
+//        System.out.println("/ (sub2 * subC):  " + calc.divisionTime + "ms");
+//        System.out.println("Summation:        " + calc.summationTime + "ms");
+//        System.out.println("/ 4C:             " + calc.finalDivisionTime + "ms");
+//        System.out.println("1 / sum:          " + calc.inverseTime + "ms");
 
 
 //        startTime = System.currentTimeMillis();
