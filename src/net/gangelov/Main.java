@@ -46,7 +46,7 @@ public class Main {
         final int maxTerms = (numDigits / ConcurrentCalculator.digitsPerTerm + 1);
 
         Calculator calc = new Calculator(maxTerms);
-        ConcurrentCalculator ccalc = new ConcurrentCalculator(maxTerms, 4);
+        ConcurrentCalculator ccalc = new ConcurrentCalculator(maxTerms, 2);
 
         CalculationProgress progress1 = new CalculationProgress(maxTerms);
 
@@ -92,10 +92,11 @@ public class Main {
 //        System.out.println("Subterm 1:        " + calc.subterm1Time + "ms");
 //        System.out.println("Subterm 2:        " + calc.subterm2Time + "ms");
 //        System.out.println("Subterm C:        " + calc.subtermCTime + "ms");
-//        System.out.println("* (4n)!:          " + calc.multiplication1Time + "ms");
-//        System.out.println("* (A + Bn):       " + calc.multiplication2Time + "ms");
-//        System.out.println("sub2 * subC:      " + calc.multiplication3Time + "ms");
-//        System.out.println("/ (sub2 * subC):  " + calc.divisionTime + "ms");
+        System.out.println("* (4n)!:          " + calc.multiplication1Time + "ms");
+        System.out.println("* (A + Bn):       " + calc.multiplication2Time + "ms");
+        System.out.println("sub2 * subC:      " + calc.multiplication3Time + "ms");
+        System.out.println("/ (sub2 * subC):  " + calc.divisionTime + "ms");
+        System.out.println("/ (sub2 * subC):  " + (calc.divisionTime / maxTerms) + "ms");
 //        System.out.println("Summation:        " + calc.summationTime + "ms");
 //        System.out.println("/ 4C:             " + calc.finalDivisionTime + "ms");
 //        System.out.println("1 / sum:          " + calc.inverseTime + "ms");

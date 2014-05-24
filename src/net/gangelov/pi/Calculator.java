@@ -16,10 +16,7 @@ public class Calculator {
     static final BigDecimal C2 = BigDecimal.valueOf(882).pow(2);
     private MathContext mc;
 
-    public long subterm1Time = 0,
-                subterm2Time = 0,
-                subtermCTime = 0,
-                multiplication1Time = 0,
+    public long multiplication1Time = 0,
                 multiplication2Time = 0,
                 multiplication3Time = 0,
                 divisionTime = 0,
@@ -53,49 +50,36 @@ public class Calculator {
 
         BigDecimal sum = BigDecimal.ZERO,
                    tmp,
-                   term;
-        BigDecimal subterm1 = BigDecimal.ONE,
-                   subterm2 = BigDecimal.ONE,
-                   subtermC = BigDecimal.ONE;
+                   term = BigDecimal.ONE;
 
-        startTime = System.currentTimeMillis();
         sum = sum.add(A, mc);
-        summationTime += System.currentTimeMillis() - startTime;
 
         progress.update(1);
 
         for (int n = 1; n < numTerms; n++) {
             startTime = System.currentTimeMillis();
-            subterm1 = subterm1.multiply(
-                    new BigDecimal(MathUtils.factorial(4 * (n - 1) + 1, 4 * n))
-            );
-            subterm1Time += System.currentTimeMillis() - startTime;
+            tmp = new BigDecimal(MathUtils.factorial(4 * (n - 1) + 1, 4 * n));
+            multiplication1Time += System.currentTimeMillis() - startTime;
 
             startTime = System.currentTimeMillis();
-            subterm2 = subterm2.multiply(
-                    BigDecimal.valueOf(4).multiply(BigDecimal.valueOf(n)).pow(4)
-            ).multiply(C2);
-            subterm2Time += System.currentTimeMillis() - startTime;
-
-            startTime = System.currentTimeMillis();
-            term = subterm1.multiply(A.add(B.multiply(BigDecimal.valueOf(n))));
+            term = term.multiply(tmp);
             multiplication2Time += System.currentTimeMillis() - startTime;
 
             startTime = System.currentTimeMillis();
-            tmp = subterm2.multiply(subtermC);
+            tmp = BigDecimal.valueOf(4).multiply(BigDecimal.valueOf(n)).pow(4).multiply(C2);
             multiplication3Time += System.currentTimeMillis() - startTime;
 
             startTime = System.currentTimeMillis();
             term = term.divide(tmp, mc);
             divisionTime += System.currentTimeMillis() - startTime;
 
-            startTime = System.currentTimeMillis();
+            tmp = term.multiply(A.add(B.multiply(BigDecimal.valueOf(n))));
+
             if (n % 2 == 0) {
-                sum = sum.add(term);
+                sum = sum.add(tmp);
             } else {
-                sum = sum.subtract(term);
+                sum = sum.subtract(tmp);
             }
-            summationTime += System.currentTimeMillis() - startTime;
 
             progress.update(n + 1);
         }
