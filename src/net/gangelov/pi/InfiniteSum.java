@@ -53,6 +53,16 @@ public interface InfiniteSum {
     BigDecimal calculateTerm(BigDecimal partialTerm, int index);
 
     /**
+     * This method is called on the resulting sum to do any necessary post-processing.
+     * An example of this is inverting the sum and multiplying by some common factor.
+     *
+     * @param result The actual summation result.
+     *
+     * @return The result value of the sum and any common factors.
+     */
+    BigDecimal finalizeSum(CalculatorResult result);
+
+    /**
      * Returns the preferred precision that should be used for calculations up to the given maximum number of terms.
      *
      * @param numTerms The maximum number of terms.
@@ -60,5 +70,4 @@ public interface InfiniteSum {
      * @return The preferred precision (in number of decimal digits).
      */
     int preferredPrecision(int numTerms);
-
 }
