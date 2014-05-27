@@ -1,6 +1,7 @@
 package net.gangelov.pi;
 
 import java.math.BigDecimal;
+import java.util.concurrent.ExecutionException;
 
 /**
  * This interface abstracts the way a sum (or a part of one) is calculated.
@@ -22,6 +23,6 @@ public interface Calculator {
      *
      * @return The sum and the last partial term
      */
-    CalculatorResult calculate(InfiniteSum sum, int startIndex, int termCount, Progress progress) throws InterruptedException;
+    CalculatorResult calculate(InfiniteSum sum, int startIndex, int termCount, Progress progress) throws InterruptedException, ExecutionException;
 
 }

@@ -8,10 +8,11 @@ import net.gangelov.pi.sums.RamanujanPi;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.concurrent.ExecutionException;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException, InterruptedException, ExecutionException {
         long startTime, time, sequentialTime;
 
         BigDecimal pi1, pi2;

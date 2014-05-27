@@ -9,29 +9,28 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.*;
 
 public class ConcurrentCalculator implements Calculator {
     private List<Calculator> calculators;
+    private ExecutorService executor;
 
     public ConcurrentCalculator(List<Calculator> calculators) {
         this.calculators = calculators;
+        this.executor = Executors.newFixedThreadPool(calculators.size());
     }
 
     @Override
-    public CalculatorResult calculate(final InfiniteSum sum, int startIndex, int termCount, final Progress progress) throws InterruptedException {
+    public CalculatorResult calculate(final InfiniteSum sum, int startIndex, int termCount, final Progress progress) throws InterruptedException, ExecutionException {
         int calculatorCount     = calculators.size();
         int termsPerCalculator  = termCount / calculatorCount;
         int lastCalculatorTerms = termsPerCalculator + termCount % calculatorCount;
 
-        final List<Thread>       threads = new ArrayList<Thread>(calculatorCount);
-        final CalculatorResult[] results = new CalculatorResult[calculatorCount];
+        final List<Future<CalculatorResult>> results = new ArrayList<Future<CalculatorResult>>(calculatorCount);
 
-        for (int i = 0; i < calculatorCount; i++) {
-            final int calculatorIndex = i;
-            final int startTerm, numTerms;
-            final Calculator calculator = calculators.get(calculatorIndex);
-
-            startTerm = termsPerCalculator * calculatorIndex;
+        for (int calculatorIndex = 0; calculatorIndex < calculatorCount; calculatorIndex++) {
+            int numTerms;
+            Calculator calculator = calculators.get(calculatorIndex);
 
             if (calculatorIndex == calculatorCount - 1) {
                 numTerms = lastCalculatorTerms;
@@ -39,30 +38,20 @@ public class ConcurrentCalculator implements Calculator {
                 numTerms = termsPerCalculator;
             }
 
-            Thread thread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        results[calculatorIndex] = calculator.calculate(sum, startTerm, numTerms, progress);
-                    } catch (InterruptedException e) {
-                        // Propagate the interruption
-                        Thread.currentThread().interrupt();
-                    }
-                }
-            });
-
-            threads.add(thread);
-
-            thread.start();
+            Callable<CalculatorResult> task = getCallableForCalculation(
+                    calculator,
+                    sum,
+                    termsPerCalculator * calculatorIndex,
+                    numTerms,
+                    progress
+            );
+            results.add(executor.submit(task));
         }
 
         BigDecimal resultSum       = BigDecimal.ZERO,
                    lastPartialTerm = BigDecimal.ONE;
         for (int i = 0; i < calculatorCount; i++) {
-            // Ensure calculation is finished
-            threads.get(i).join();
-
-            CalculatorResult partialResult = results[i];
+            CalculatorResult partialResult = results.get(i).get();
 
             resultSum = resultSum.add(
                     lastPartialTerm.multiply(
@@ -84,5 +73,18 @@ public class ConcurrentCalculator implements Calculator {
         }
 
         return new ConcurrentCalculator(calculators);
+    }
+
+    public static Callable<CalculatorResult> getCallableForCalculation(final Calculator calculator,
+                                                                           final InfiniteSum sum,
+                                                                           final int startIndex,
+                                                                           final int termCount,
+                                                                           final Progress progress) {
+        return new Callable<CalculatorResult>() {
+            @Override
+            public CalculatorResult call() throws Exception {
+                return calculator.calculate(sum, startIndex, termCount, progress);
+            }
+        };
     }
 }

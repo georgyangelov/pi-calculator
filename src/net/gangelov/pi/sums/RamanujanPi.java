@@ -21,10 +21,8 @@ public class RamanujanPi implements InfiniteSum {
                                     minusOne = BigDecimal.valueOf(-1);
 
     private MathContext mathContext;
-    private int numTerms;
 
     public RamanujanPi(int numTerms) {
-        this.numTerms = numTerms;
         mathContext = new MathContext(preferredPrecision(numTerms), RoundingMode.FLOOR);
     }
 
