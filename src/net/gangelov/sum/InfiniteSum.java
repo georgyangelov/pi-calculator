@@ -1,6 +1,8 @@
-package net.gangelov.pi;
+package net.gangelov.sum;
 
-import java.math.BigDecimal;
+import org.apfloat.Apfloat;
+
+import java.io.Serializable;
 
 /**
  * This interface should be implemented to allow abstract calculation of sums.
@@ -40,7 +42,7 @@ public interface InfiniteSum {
      *
      * @return The partial term for termIndex.
      */
-    BigDecimal nextPartialTerm(BigDecimal lastPartialTerm, int termIndex);
+    Apfloat nextPartialTerm(Apfloat lastPartialTerm, int termIndex);
 
     /**
      * Calculates the actual term that should be added to the resulting sum.
@@ -50,7 +52,7 @@ public interface InfiniteSum {
      *
      * @return The actual (non-partial) term to sum.
      */
-    BigDecimal calculateTerm(BigDecimal partialTerm, int index);
+    Apfloat calculateTerm(Apfloat partialTerm, int index);
 
     /**
      * This method is called on the resulting sum to do any necessary post-processing.
@@ -60,7 +62,7 @@ public interface InfiniteSum {
      *
      * @return The result value of the sum and any common factors.
      */
-    BigDecimal finalizeSum(CalculatorResult result);
+    Apfloat finalizeSum(CalculatorResult result);
 
     /**
      * Returns the preferred precision that should be used for calculations up to the given maximum number of terms.

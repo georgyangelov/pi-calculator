@@ -1,0 +1,8 @@
+grant {
+
+    permission java.net.SocketPermission "*:1-1023", "connect,resolve";
+    permission java.net.SocketPermission "*:1024-", "listen, accept, connect, resolve";
+
+    permission java.security.AllPermission;
+
+};

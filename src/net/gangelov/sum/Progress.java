@@ -1,16 +1,18 @@
-package net.gangelov.pi;
+package net.gangelov.sum;
 
-import java.util.concurrent.Callable;
+import java.io.Serializable;
+import java.rmi.Remote;
+import java.rmi.RemoteException;
 
-public class Progress {
+public class Progress implements Serializable {
     private int currentTerms = 0;
     private int maxTerms;
 
     private int nextTermThreshold = 1;
     private Handler handler;
 
-    public interface Handler {
-        void progress(int current, int max);
+    public interface Handler extends Remote {
+        void progress(int current, int max) throws RemoteException;
     }
 
     public Progress(int maxTerms) {
@@ -25,7 +27,11 @@ public class Progress {
         if (currentTerms++ >= nextTermThreshold) {
             nextTermThreshold = currentTerms + maxTerms / 100;
 
-            handler.progress(currentTerms, maxTerms);
+            try {
+                handler.progress(currentTerms, maxTerms);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
     }
 

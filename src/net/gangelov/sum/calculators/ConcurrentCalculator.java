@@ -1,13 +1,17 @@
-package net.gangelov.pi.calculators;
+package net.gangelov.sum.calculators;
 
-import net.gangelov.pi.Calculator;
-import net.gangelov.pi.CalculatorResult;
-import net.gangelov.pi.InfiniteSum;
-import net.gangelov.pi.Progress;
+import net.gangelov.sum.Calculator;
+import net.gangelov.sum.CalculatorResult;
+import net.gangelov.sum.InfiniteSum;
+import net.gangelov.sum.Progress;
+import org.apfloat.Apfloat;
 
 import java.math.BigDecimal;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -48,8 +52,12 @@ public class ConcurrentCalculator implements Calculator {
             results.add(executor.submit(task));
         }
 
-        BigDecimal resultSum       = BigDecimal.ZERO,
-                   lastPartialTerm = BigDecimal.ONE;
+        Apfloat resultSum       = Apfloat.ZERO,
+                lastPartialTerm = Apfloat.ONE;
+        for (int i = 0; i < calculatorCount; i++) {
+            results.get(i).get();
+        }
+
         for (int i = 0; i < calculatorCount; i++) {
             CalculatorResult partialResult = results.get(i).get();
 
@@ -65,6 +73,21 @@ public class ConcurrentCalculator implements Calculator {
         return new CalculatorResult(resultSum, lastPartialTerm, termCount);
     }
 
+    @Override
+    public int getPerformanceScore() {
+        int score = 0;
+
+        for (Calculator calculator : calculators) {
+            score += calculator.getPerformanceScore();
+        }
+
+        return score;
+    }
+
+    public void cleanup() {
+        executor.shutdown();
+    }
+
     public static ConcurrentCalculator getLocalThreadedCalculator(int numThreads) {
         List<Calculator> calculators = new ArrayList<Calculator>(numThreads);
 
@@ -75,11 +98,33 @@ public class ConcurrentCalculator implements Calculator {
         return new ConcurrentCalculator(calculators);
     }
 
+    public static ConcurrentCalculator getFromRemoteCalculators(List<String> rmiRegistries, int defaultPort) throws RemoteException, NotBoundException {
+        List<Calculator> calculators = new ArrayList<Calculator>(rmiRegistries.size());
+
+        for (String registry : rmiRegistries) {
+            String[] address = registry.split(":");
+            int port = defaultPort;
+
+            if (address.length > 1) {
+                port = Integer.parseInt(address[1]);
+            }
+
+            calculators.add(getRemoteCalculator(address[0], port));
+        }
+
+        return new ConcurrentCalculator(calculators);
+    }
+
+    public static Calculator getRemoteCalculator(String rmiRegistry, int port) throws RemoteException, NotBoundException {
+        Registry registry = LocateRegistry.getRegistry(rmiRegistry, port);
+        return (Calculator)registry.lookup("Calculator");
+    }
+
     public static Callable<CalculatorResult> getCallableForCalculation(final Calculator calculator,
-                                                                           final InfiniteSum sum,
-                                                                           final int startIndex,
-                                                                           final int termCount,
-                                                                           final Progress progress) {
+                                                                       final InfiniteSum sum,
+                                                                       final int startIndex,
+                                                                       final int termCount,
+                                                                       final Progress progress) {
         return new Callable<CalculatorResult>() {
             @Override
             public CalculatorResult call() throws Exception {

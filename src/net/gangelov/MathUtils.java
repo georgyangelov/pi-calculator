@@ -1,24 +1,24 @@
 package net.gangelov;
 
-import java.math.BigInteger;
+import org.apfloat.Apfloat;
 
 public class MathUtils {
-    public static BigInteger factorial(int num) {
+    public static Apfloat factorial(int num) {
         if (num == 0) {
-            return BigInteger.ONE;
+            return Apfloat.ONE;
         }
 
         return factorial(1, num);
     }
 
-    public static BigInteger factorial(int from, int to) {
+    public static Apfloat factorial(int from, int to) {
         if (from == to) {
-            return BigInteger.valueOf(from);
+            return new Apfloat(from);
         }
 
         int middle = (from + to) / 2;
-        BigInteger a = factorial(from, middle);
-        BigInteger b = factorial(middle + 1, to);
+        Apfloat a = factorial(from, middle);
+        Apfloat b = factorial(middle + 1, to);
 
         return a.multiply(b);
     }
