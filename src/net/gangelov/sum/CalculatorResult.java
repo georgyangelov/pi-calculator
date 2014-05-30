@@ -14,6 +14,7 @@ public class CalculatorResult implements Serializable {
     private Apfloat lastPartialTerm;
 
     private int numTerms;
+    private long time;
 
     public Apfloat getSum() {
         return sum;
@@ -27,9 +28,14 @@ public class CalculatorResult implements Serializable {
         return numTerms;
     }
 
-    public CalculatorResult(Apfloat sum, Apfloat lastPartialTerm, int numTerms) {
+    public long getTime() {
+        return time;
+    }
+
+    public CalculatorResult(Apfloat sum, Apfloat lastPartialTerm, int numTerms, long timeMilliseconds) {
         this.sum = sum;
         this.lastPartialTerm = lastPartialTerm;
         this.numTerms = numTerms;
+        this.time = timeMilliseconds;
     }
 }

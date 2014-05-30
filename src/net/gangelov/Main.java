@@ -2,7 +2,8 @@ package net.gangelov;
 
 import net.gangelov.sum.Calculator;
 import net.gangelov.sum.CalculatorResult;
-import net.gangelov.sum.Progress;
+import net.gangelov.sum.ProgressHandler;
+import net.gangelov.sum.progresses.MultiProgressHandler;
 import net.gangelov.sum.calculators.ConcurrentCalculator;
 import net.gangelov.sum.sums.RamanujanPi;
 import org.apfloat.Apfloat;
@@ -23,6 +24,7 @@ public class Main {
             throws IOException, InterruptedException, ExecutionException, NotBoundException {
         int numThreads = 0;
         int numTerms = 0;
+        int progressStubPort = 42425;
         String outFile = "pi";
 
         boolean server = false;
@@ -35,6 +37,9 @@ public class Main {
                 server = true;
             } else if (arg.equals("-r") || arg.equals("--remote")) {
                 remotes.add(args[i + 1]);
+                i++;
+            } else if (arg.equals("--progress-port")) {
+                progressStubPort = Integer.parseInt(args[i + 1]);
                 i++;
             } else if (arg.equals("-p") || arg.equals("--terms")) {
                 numTerms = Integer.parseInt(args[i + 1]);
@@ -51,7 +56,14 @@ public class Main {
             }
         }
 
+        MultiProgressHandler.initialize(progressStubPort);
+
         if (server) {
+            if (numThreads == 0) {
+                numThreads = Runtime.getRuntime().availableProcessors();
+                System.out.println("Using " + numThreads + " threads");
+            }
+
             runServer(numThreads);
         } else {
             if (numTerms == 0) {
@@ -59,18 +71,21 @@ public class Main {
                 System.exit(1);
             }
 
-            if (numThreads == 0) {
-                numThreads = Runtime.getRuntime().availableProcessors();
-                System.out.println("Using " + numThreads + " threads");
-            }
-
             if (remotes.size() > 0) {
                 runCalculator(numTerms, outFile, remotes);
-                return;
-            }
+            } else {
+                if (numThreads == 0) {
+                    numThreads = Runtime.getRuntime().availableProcessors();
+                    System.out.println("Using " + numThreads + " threads");
+                }
 
-            runLocalCalculator(numTerms, numThreads, outFile);
+                runLocalCalculator(numTerms, numThreads, outFile);
+            }
+            MultiProgressHandler.dispose();
+            System.exit(0);
         }
+
+        MultiProgressHandler.dispose();
     }
 
     private static String getPolicyFile()
@@ -118,18 +133,12 @@ public class Main {
 
         Apfloat pi;
 
-        Progress progress        = new Progress(numTerms);
-        Progress.Handler handler = new Progress.Handler() {
+        ProgressHandler progressHandler = new ProgressHandler() {
             @Override
             public void progress(int current, int max) {
                 System.out.format("\r\r\r\r\r\r\r\r\r\r\r\rProgress: %02d%%", (int)(((float)current + 1)/max * 100));
             }
         };
-
-        // Export the handler so it can be called from the remote
-        Progress.Handler handlerStub = (Progress.Handler)UnicastRemoteObject.exportObject(handler, 42425);
-
-        progress.setHandler(handlerStub);
 
         RamanujanPi ramanujanPi = new RamanujanPi(numTerms);
         ConcurrentCalculator calculator = null;
@@ -143,7 +152,7 @@ public class Main {
         CalculatorResult result;
 
         startTime = System.currentTimeMillis();
-        result    = calculator.calculate(ramanujanPi, 0, numTerms, progress);
+        result    = calculator.calculate(ramanujanPi, 0, numTerms, progressHandler);
         time      = System.currentTimeMillis() - startTime;
 
         startTime    = System.currentTimeMillis();
@@ -154,8 +163,6 @@ public class Main {
 
         System.out.println("\nCalculation time: " + time          + "ms");
         System.out.println("Finalization time: "  + finalizeTime  + "ms");
-
-        UnicastRemoteObject.unexportObject(handler, true);
 
         PrintWriter file = new PrintWriter(new FileOutputStream(outFile, false));
         file.println(pi.toString());
@@ -169,20 +176,19 @@ public class Main {
 
         Apfloat pi;
 
-        Progress progress = new Progress(numTerms);
-        progress.setHandler(new Progress.Handler() {
+        ProgressHandler progressHandler = new ProgressHandler() {
             @Override
             public void progress(int current, int max) {
                 System.out.format("\r\r\r\r\r\r\r\r\r\r\r\rProgress: %02d%%", (int)(((float)current + 1)/max * 100));
             }
-        });
+        };
 
         RamanujanPi ramanujanPi = new RamanujanPi(numTerms);
         ConcurrentCalculator calculator = ConcurrentCalculator.getLocalThreadedCalculator(numThreads);
         CalculatorResult result;
 
         startTime = System.currentTimeMillis();
-        result    = calculator.calculate(ramanujanPi, 0, numTerms, progress);
+        result    = calculator.calculate(ramanujanPi, 0, numTerms, progressHandler);
         time      = System.currentTimeMillis() - startTime;
 
         startTime = System.currentTimeMillis();

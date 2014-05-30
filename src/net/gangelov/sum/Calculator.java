@@ -20,11 +20,11 @@ public interface Calculator extends Remote {
      * @param sum The sum to calculate.
      * @param startIndex The start term index.
      * @param termCount The number of terms to sum.
-     * @param progress A Progress object which can be used to monitor the calculation progress.
+     * @param progress A ProgressHandler object which can be used to monitor the calculation progress.
      *
      * @return The sum and the last partial term
      */
-    CalculatorResult calculate(InfiniteSum sum, int startIndex, int termCount, Progress progress) throws InterruptedException, ExecutionException, RemoteException;
+    CalculatorResult calculate(InfiniteSum sum, int startIndex, int termCount, ProgressHandler progress) throws InterruptedException, ExecutionException, RemoteException;
 
     /**
      * The performance score for a calculator is an integer approximating how fast the calculation can be done.
@@ -37,5 +37,5 @@ public interface Calculator extends Remote {
      *
      * @return The performance score.
      */
-    int getPerformanceScore();
+    int getPerformanceScore() throws RemoteException;
 }
