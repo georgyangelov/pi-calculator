@@ -20,11 +20,16 @@ import java.util.concurrent.ExecutionException;
 
 public class Main {
 
+    final static int defaultProgressStubPort = 42425,
+                     defaultRegistryPort     = 42424;
+
+
     public static void main(String[] args)
             throws IOException, InterruptedException, ExecutionException, NotBoundException {
-        int numThreads = 0;
-        int numTerms = 0;
-        int progressStubPort = 42425;
+        int numThreads = 0,
+            numTerms = 0,
+            progressStubPort = defaultProgressStubPort,
+            registryPort     = defaultRegistryPort;
         String outFile = "pi";
 
         boolean server = false;
@@ -40,6 +45,9 @@ public class Main {
                 i++;
             } else if (arg.equals("--progress-port")) {
                 progressStubPort = Integer.parseInt(args[i + 1]);
+                i++;
+            } else if (arg.equals("--registry-port")) {
+                registryPort = Integer.parseInt(args[i + 1]);
                 i++;
             } else if (arg.equals("-p") || arg.equals("--terms")) {
                 numTerms = Integer.parseInt(args[i + 1]);
@@ -64,7 +72,7 @@ public class Main {
                 System.out.println("Using " + numThreads + " threads");
             }
 
-            runServer(numThreads);
+            runServer(numThreads, registryPort);
         } else {
             if (numTerms == 0) {
                 System.err.println("Number of terms should be specified with -p");
@@ -104,7 +112,7 @@ public class Main {
         return policyFile.getAbsolutePath();
     }
 
-    private static void runServer(int numThreads)
+    private static void runServer(int numThreads, int registryPort)
             throws IOException {
         System.setProperty("java.security.policy", getPolicyFile());
         if (System.getSecurityManager() == null) {
@@ -117,7 +125,7 @@ public class Main {
             Calculator calculator = ConcurrentCalculator.getLocalThreadedCalculator(numThreads);
             Calculator stub       = (Calculator)UnicastRemoteObject.exportObject(calculator, 0);
 
-            Registry registry = LocateRegistry.createRegistry(42424);
+            Registry registry = LocateRegistry.createRegistry(registryPort);
             registry.rebind(name, stub);
 
             System.out.println("Calculator bound");
@@ -142,13 +150,7 @@ public class Main {
 
         RamanujanPi ramanujanPi = new RamanujanPi(numTerms);
         ConcurrentCalculator calculator = null;
-//        try {
-            calculator = ConcurrentCalculator.getFromRemoteCalculators(remotes, 42424);
-//        } catch (NotBoundException e) {
-//            System.err.println("Cannot locate registry or Calculator object");
-//            e.printStackTrace();
-//            return;
-//        }
+        calculator = ConcurrentCalculator.getFromRemoteCalculators(remotes, 42424);
         CalculatorResult result;
 
         startTime = System.currentTimeMillis();
