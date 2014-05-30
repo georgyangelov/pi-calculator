@@ -24,6 +24,11 @@ public class ConcurrentCalculator implements Calculator {
         this.executor = Executors.newFixedThreadPool(calculators.size());
     }
 
+    public ConcurrentCalculator(List<Calculator> calculators, int threadCount) {
+        this.calculators = calculators;
+        this.executor = Executors.newFixedThreadPool(threadCount);
+    }
+
     private int[] distributeTermCounts(int termCount) throws RemoteException {
         int performanceScore = getPerformanceScore();
         int termsLeft = termCount;
@@ -42,14 +47,33 @@ public class ConcurrentCalculator implements Calculator {
     @Override
     public CalculatorResult calculate(final InfiniteSum sum, int startIndex, int termCount, final ProgressHandler progressHandler)
             throws InterruptedException, ExecutionException, RemoteException {
-        long time;
         int termOffset = startIndex, calculatorCount = calculators.size();
         int[] terms = distributeTermCounts(termCount);
 
         final MultiProgressHandler multiProgressHandler = new MultiProgressHandler(terms, progressHandler);
-        final List<Future<CalculatorResult>> results = new ArrayList<Future<CalculatorResult>>(calculatorCount);
+        try {
+            long computationTime = System.currentTimeMillis();
 
-        time = System.currentTimeMillis();
+            List<Future<CalculatorResult>> resultFutures =
+                    startCalculation(sum, calculatorCount, termOffset, terms, multiProgressHandler);
+
+            List<CalculatorResult> results = waitForResults(resultFutures);
+
+            computationTime = System.currentTimeMillis() - computationTime;
+
+            return mergeResults(results, computationTime);
+        } finally {
+            multiProgressHandler.dispose();
+        }
+    }
+
+    private List<Future<CalculatorResult>> startCalculation(final InfiniteSum sum,
+                                              int calculatorCount,
+                                              int termOffset,
+                                              int[] terms,
+                                              final MultiProgressHandler multiProgressHandler)
+            throws ExecutionException, InterruptedException {
+        final List<Future<CalculatorResult>> results = new ArrayList<Future<CalculatorResult>>(calculatorCount);
 
         for (int calculatorIndex = 0; calculatorIndex < calculatorCount; calculatorIndex++) {
             Calculator calculator = calculators.get(calculatorIndex);
@@ -66,15 +90,17 @@ public class ConcurrentCalculator implements Calculator {
             termOffset += terms[calculatorIndex];
         }
 
-        Apfloat resultSum       = Apfloat.ZERO,
+        return results;
+    }
+
+    private CalculatorResult mergeResults(List<CalculatorResult> results, long computationTime) {
+        long mergeTime = System.currentTimeMillis();
+
+        int termCount = 0;
+        Apfloat resultSum = Apfloat.ZERO,
                 lastPartialTerm = Apfloat.ONE;
-        for (int i = 0; i < calculatorCount; i++) {
-            results.get(i).get();
-        }
 
-        for (int i = 0; i < calculatorCount; i++) {
-            CalculatorResult partialResult = results.get(i).get();
-
+        for (CalculatorResult partialResult : results) {
             resultSum = resultSum.add(
                     lastPartialTerm.multiply(
                             partialResult.getSum()
@@ -82,11 +108,12 @@ public class ConcurrentCalculator implements Calculator {
             );
 
             lastPartialTerm = lastPartialTerm.multiply(partialResult.getLastPartialTerm());
+            termCount += partialResult.getNumTerms();
         }
 
-        time = System.currentTimeMillis() - time;
+        mergeTime = System.currentTimeMillis() - mergeTime;
 
-        return new CalculatorResult(resultSum, lastPartialTerm, termCount, time);
+        return new CalculatorResult(resultSum, lastPartialTerm, termCount, computationTime + mergeTime);
     }
 
     @Override
@@ -104,6 +131,17 @@ public class ConcurrentCalculator implements Calculator {
         executor.shutdown();
     }
 
+    private static <T> List<T> waitForResults(final List<Future<T>> resultFutures)
+            throws ExecutionException, InterruptedException {
+        List<T> results = new ArrayList<T>();
+
+        for (Future<T> future : resultFutures) {
+            results.add(future.get());
+        }
+
+        return results;
+    }
+
     public static ConcurrentCalculator getLocalThreadedCalculator(int numThreads) {
         List<Calculator> calculators = new ArrayList<Calculator>(numThreads);
 
@@ -112,6 +150,16 @@ public class ConcurrentCalculator implements Calculator {
         }
 
         return new ConcurrentCalculator(calculators);
+    }
+
+    public static ConcurrentCalculator getLocalThreadedCalculator(int numSplits, int numThreads) {
+        List<Calculator> calculators = new ArrayList<Calculator>(numSplits);
+
+        for (int i = 0; i < numSplits; i++) {
+            calculators.add(new SequentialCalculator());
+        }
+
+        return new ConcurrentCalculator(calculators, numThreads);
     }
 
     public static ConcurrentCalculator getFromRemoteCalculators(List<String> rmiRegistries, int defaultPort)

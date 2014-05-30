@@ -2,9 +2,11 @@ package net.gangelov;
 
 import net.gangelov.sum.Calculator;
 import net.gangelov.sum.CalculatorResult;
+import net.gangelov.sum.InfiniteSum;
 import net.gangelov.sum.ProgressHandler;
 import net.gangelov.sum.progresses.MultiProgressHandler;
 import net.gangelov.sum.calculators.ConcurrentCalculator;
+import net.gangelov.sum.sums.ChudonovskyPi;
 import net.gangelov.sum.sums.RamanujanPi;
 import org.apfloat.Apfloat;
 
@@ -27,10 +29,12 @@ public class Main {
     public static void main(String[] args)
             throws IOException, InterruptedException, ExecutionException, NotBoundException {
         int numThreads = 0,
+            numSplitParts = 0,
             numTerms = 0,
             progressStubPort = defaultProgressStubPort,
             registryPort     = defaultRegistryPort;
-        String outFile = "pi";
+        String outFile = "pi",
+               sumName = null;
 
         boolean server = false;
         List<String> remotes = new ArrayList<String>();
@@ -55,8 +59,14 @@ public class Main {
             } else if (arg.equals("-t") || arg.equals("--threads")) {
                 numThreads = Integer.parseInt(args[i + 1]);
                 i++;
+            } else if (arg.equals("--splits")) {
+                numSplitParts = Integer.parseInt(args[i + 1]);
+                i++;
             } else if (arg.equals("-o") || arg.equals("--out")) {
                 outFile = args[i + 1];
+                i++;
+            } else if (arg.equals("--sum")) {
+                sumName = args[i + 1];
                 i++;
             } else {
                 System.err.println("Unknown option " + arg);
@@ -64,7 +74,7 @@ public class Main {
             }
         }
 
-        MultiProgressHandler.initialize(progressStubPort);
+        MultiProgressHandler.exportHandler(progressStubPort);
 
         if (server) {
             if (numThreads == 0) {
@@ -79,21 +89,40 @@ public class Main {
                 System.exit(1);
             }
 
+            if (sumName == null) {
+                System.out.println("Using Ramanujan's sum");
+                sumName = "ramanujan";
+            }
+
+            InfiniteSum sum = null;
+            if (sumName.equalsIgnoreCase("ramanujan")) {
+                sum = new RamanujanPi(numTerms);
+            } else if (sumName.equalsIgnoreCase("chudonovsky")) {
+                sum = new ChudonovskyPi(numTerms);
+            } else {
+                System.err.println("Unknown sum " + sumName);
+                System.exit(1);
+            }
+
             if (remotes.size() > 0) {
-                runCalculator(numTerms, outFile, remotes);
+                runCalculator(sum, numTerms, outFile, remotes);
             } else {
                 if (numThreads == 0) {
                     numThreads = Runtime.getRuntime().availableProcessors();
                     System.out.println("Using " + numThreads + " threads");
                 }
 
-                runLocalCalculator(numTerms, numThreads, outFile);
+                if (numSplitParts == 0) {
+                    numSplitParts = numThreads;
+                }
+
+                runLocalCalculator(sum, numTerms, numSplitParts, numThreads, outFile);
             }
-            MultiProgressHandler.dispose();
+            MultiProgressHandler.unexportHandler();
             System.exit(0);
         }
 
-        MultiProgressHandler.dispose();
+        MultiProgressHandler.unexportHandler();
     }
 
     private static String getPolicyFile()
@@ -135,7 +164,7 @@ public class Main {
         }
     }
 
-    private static void runCalculator(int numTerms, String outFile, List<String> remotes)
+    private static void runCalculator(InfiniteSum sum, int numTerms, String outFile, List<String> remotes)
             throws IOException, InterruptedException, ExecutionException, NotBoundException {
         long startTime, time, finalizeTime;
 
@@ -148,17 +177,16 @@ public class Main {
             }
         };
 
-        RamanujanPi ramanujanPi = new RamanujanPi(numTerms);
         ConcurrentCalculator calculator = null;
         calculator = ConcurrentCalculator.getFromRemoteCalculators(remotes, 42424);
         CalculatorResult result;
 
         startTime = System.currentTimeMillis();
-        result    = calculator.calculate(ramanujanPi, 0, numTerms, progressHandler);
+        result    = calculator.calculate(sum, 0, numTerms, progressHandler);
         time      = System.currentTimeMillis() - startTime;
 
         startTime    = System.currentTimeMillis();
-        pi           = ramanujanPi.finalizeSum(result);
+        pi           = sum.finalizeSum(result);
         finalizeTime = System.currentTimeMillis() - startTime;
 
         calculator.cleanup();
@@ -172,7 +200,7 @@ public class Main {
         file.close();
     }
 
-    private static void runLocalCalculator(int numTerms, int numThreads, String outFile)
+    private static void runLocalCalculator(InfiniteSum sum, int numTerms, int numSplitParts, int numThreads, String outFile)
             throws IOException, InterruptedException, ExecutionException {
         long startTime, time, finalizeTime;
 
@@ -185,16 +213,15 @@ public class Main {
             }
         };
 
-        RamanujanPi ramanujanPi = new RamanujanPi(numTerms);
-        ConcurrentCalculator calculator = ConcurrentCalculator.getLocalThreadedCalculator(numThreads);
+        ConcurrentCalculator calculator = ConcurrentCalculator.getLocalThreadedCalculator(numSplitParts, numThreads);
         CalculatorResult result;
 
         startTime = System.currentTimeMillis();
-        result    = calculator.calculate(ramanujanPi, 0, numTerms, progressHandler);
+        result    = calculator.calculate(sum, 0, numTerms, progressHandler);
         time      = System.currentTimeMillis() - startTime;
 
-        startTime = System.currentTimeMillis();
-        pi       = ramanujanPi.finalizeSum(result);
+        startTime    = System.currentTimeMillis();
+        pi           = sum.finalizeSum(result);
         finalizeTime = System.currentTimeMillis() - startTime;
 
         calculator.cleanup();

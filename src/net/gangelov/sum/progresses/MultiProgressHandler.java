@@ -31,11 +31,11 @@ public class MultiProgressHandler implements Serializable {
     private static int instanceIdCounter = 1;
     private static final Map<Integer, MultiProgressHandler> instances = new HashMap<Integer, MultiProgressHandler>();
 
-    public static void initialize(int stubPort) throws RemoteException {
+    public static void exportHandler(int stubPort) throws RemoteException {
         aggregationHandlerStub = (AggregationProgressHandler)UnicastRemoteObject.exportObject(aggregationHandler, stubPort);
     }
 
-    public static void dispose() {
+    public static void unexportHandler() {
         try {
             UnicastRemoteObject.unexportObject(aggregationHandlerStub, true);
         } catch (NoSuchObjectException e) {
@@ -72,6 +72,10 @@ public class MultiProgressHandler implements Serializable {
 
             current[i] = 0;
         }
+    }
+
+    public synchronized void dispose() {
+        instances.remove(instanceId);
     }
 
     private synchronized void registerInstance() {

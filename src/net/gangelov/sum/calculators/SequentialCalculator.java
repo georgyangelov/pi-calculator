@@ -36,6 +36,7 @@ public class SequentialCalculator implements Calculator {
         }
 
         time = System.currentTimeMillis() - time;
+        System.out.println("Thread " + startIndex + " -> " + time + "ms");
 
         return new CalculatorResult(result, partialTerm, termCount, time);
     }
