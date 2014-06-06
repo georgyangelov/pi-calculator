@@ -25,6 +25,8 @@ public class Main {
     final static int defaultProgressStubPort = 42425,
                      defaultRegistryPort     = 42424;
 
+    public static boolean quiet = false;
+
 
     public static void main(String[] args)
             throws IOException, InterruptedException, ExecutionException, NotBoundException {
@@ -68,6 +70,8 @@ public class Main {
             } else if (arg.equals("--sum")) {
                 sumName = args[i + 1];
                 i++;
+            } else if (arg.equals("-q") || arg.equals("--quiet")) {
+                quiet = true;
             } else {
                 System.err.println("Unknown option " + arg);
                 System.exit(1);
@@ -173,7 +177,9 @@ public class Main {
         ProgressHandler progressHandler = new ProgressHandler() {
             @Override
             public void progress(int current, int max) {
-                System.out.format("\r\r\r\r\r\r\r\r\r\r\r\rProgress: %02d%%", (int)(((float)current + 1)/max * 100));
+                if (!quiet) {
+                    System.out.format("\rProgress: %02d%%", (int) (((float) current + 1) / max * 100));
+                }
             }
         };
 
@@ -209,7 +215,9 @@ public class Main {
         ProgressHandler progressHandler = new ProgressHandler() {
             @Override
             public void progress(int current, int max) {
-                System.out.format("\r\r\r\r\r\r\r\r\r\r\r\rProgress: %02d%%", (int)(((float)current + 1)/max * 100));
+                if (!quiet) {
+                    System.out.format("\rProgress: %02d%%", (int) (((float) current + 1) / max * 100));
+                }
             }
         };
 
