@@ -22,7 +22,7 @@ public class SequentialCalculator implements Calculator {
 
         int endIndex = startIndex + termCount;
 
-        // Prevent Apfloat for using multiple threads (we're already doing the parallelization ourselves)
+        // Prevent Apfloat from using multiple threads (we're already doing the parallelization ourselves)
         ApfloatContext context = new ApfloatContext(new Properties());
         context.setNumberOfProcessors(1);
 
